@@ -58,7 +58,7 @@ class InkyDisplayService:
       self._running = True
       self._display_thread.start()
     else:
-      logging.warn('Inky Display Service already stopped')
+      logging.warn('Inky Display Service already started')
     
   def shutdown(self):
     if self._running:
