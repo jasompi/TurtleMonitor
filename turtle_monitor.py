@@ -3,9 +3,9 @@
 import adafruit_veml6075 as veml6075
 import adafruit_ads1x15.ads1015 as ADS
 import adafruit_ads1x15.analog_in as analog_in
-import argparse
 import board
 import busio
+from ds18b20 import fahrenheit, DS18B20
 import fonts.ttf
 import glob
 import inky.phat
@@ -20,29 +20,6 @@ import time
 from inky_display_service import InkyDisplayService
 
 
-parser = argparse.ArgumentParser()
-parser.add_argument(
-    '--log-level',
-    default=logging.INFO,
-    type=lambda x: getattr(logging, x),
-    help='Configure the logging level. default: INFO'
-)
-args = parser.parse_args()
-logging.basicConfig(level=args.log_level)
-
-
-i2c = busio.I2C(board.SCL, board.SDA)
-
-# Create VEML6075 object using the I2C bus
-veml = veml6075.VEML6075(i2c, integration_time=100)
-
-# Create the ADC object using the I2C bus
-ads = ADS.ADS1015(i2c)
-# set gain to 2x since the range is 0 ~ 1.6v
-
-# Create single-ended input on channel 0
-chan = analog_in.AnalogIn(ads, ADS.P0)
-
 HIGH_LEVEL = 1.6
 HIGH_THRESHOLD = 1.5
 
@@ -50,14 +27,10 @@ LOW_THRESHOLD = 0.5
 LOW_LEVEL = 0
 
 
-def fahrenheit(celsius):
-  return celsius * 9.0 / 5.0 + 32.0
-
-
 class TurtleDisplay:
   def load_image(name):
     # Get the current path
-    PATH = os.path.dirname('.')
+    PATH = os.path.dirname(__file__)
     return PIL.Image.open(os.path.join(PATH, f'{name}.png')).resize((24, 24))
 
     # Load the font
@@ -161,60 +134,82 @@ class TurtleDisplay:
       self._inky_service.display(canvas)
 
 
-base_dir = '/sys/bus/w1/devices/'
+def main():
+  device_names = {
+    '28-012115d1f634': 'Water',
+    '28-012114259884': 'Air',
+  }
+  
+  temperatures = {
+  }
 
-def read_first_line(device_folder, filename):
-  with open(device_folder + '/' + filename, 'r') as f:
-    return next(iter(f.readlines()), None)
+  DS18B20.start()
 
-def read_name(device_folder):
-  return read_first_line(device_folder, 'name')
+  devices = DS18B20.devices
 
-def read_temp_raw(device_folder):
-  return read_first_line(device_folder, 'temperature')
+  inky_service = InkyDisplayService()
+  inky_service.start()
+  turtle_display = TurtleDisplay(inky_service)
+  logging.info('Turtle Monitor started')
 
-def read_temp(device_folder):
-    temp_raw = read_temp_raw(device_folder)
-    if temp_raw:
-        temp_c = float(temp_raw) / 1000.0
-        return temp_c
+  i2c = busio.I2C(board.SCL, board.SDA)
 
-device_names = {
-  '28-012115d1f634': 'Water',
-  '28-012114259884': 'Air',
-}
+  # Create VEML6075 object using the I2C bus
+  veml = veml6075.VEML6075(i2c, integration_time=100)
 
-temperatures = {
-}
+  # Create the ADC object using the I2C bus
+  ads = ADS.ADS1015(i2c)
 
-inky_service = InkyDisplayService()
-inky_service.start()
-turtle_display = TurtleDisplay(inky_service)
-logging.info('Turtle Monitor started')
+  # Create single-ended input on channel 0
+  chan = analog_in.AnalogIn(ads, ADS.P0)
 
-try:
-  while True:
-    for device_folder in glob.glob(base_dir + '28*'):
-      device_id = (read_name(device_folder) or '').strip()
-      device_name = device_names[device_id]
-      temp_c = read_temp(device_folder)
-      temp_f = fahrenheit(temp_c)
+  try:
+    while True:
+      for dev in devices:
+        device_id = dev.device_id
+        device_name = device_names[device_id]
+        temp_c = dev.temperature
+        temp_f = dev.fahrenheit(temp_c)
 
-      logging.debug(f'{device_name:>7}({device_id}): {temp_c}℃ {temp_f}℉')
-      temperatures[device_name] = temp_c
+        logging.debug(f'{device_name:>7}({device_id}): {temp_c}℃ {temp_f}℉')
+        temperatures[device_name] = temp_c
 
-    air_temp = temperatures['Air']
-    water_temp = temperatures['Water']
-    uva, uvb, uv_index = veml.uv_data
-    logging.debug(f'uva={uva}, uvb={uvb}, uv_index={uv_index}')
+      air_temp = temperatures['Air']
+      water_temp = temperatures['Water']
 
-    voltage = chan.voltage
-    logging.debug("voltage: {:>5.3f}".format(voltage))
+      uva, uvb, uv_index = veml.uv_data
+      logging.debug(f'uva={uva}, uvb={uvb}, uv_index={uv_index}')
 
-    turtle_display.display(air_temp, water_temp, uva, uvb, voltage)
-    time.sleep(1)
-except KeyboardInterrupt:
-  pass
+      voltage = chan.voltage
+      logging.debug("voltage: {:>5.3f}".format(voltage))
 
-inky_service.shutdown()
-logging.info('Turtle Monitor stopped')
+      turtle_display.display(air_temp, water_temp, uva, uvb, voltage)
+      time.sleep(1)
+  except KeyboardInterrupt:
+    pass
+
+  inky_service.shutdown()
+  DS18B20.shutdown()
+  logging.info('Turtle Monitor stopped')
+
+
+if __name__ == "__main__":
+  import argparse
+
+  parser = argparse.ArgumentParser()
+  parser.add_argument(
+      '--log-level',
+      default=logging.INFO,
+      type=lambda x: getattr(logging, x),
+      help='Configure the logging level. default: INFO'
+  )
+  parser.add_argument(
+      '--async-mode',
+      default=False,
+      type=bool,
+      help='Collect temperature reading in async mode'
+  )
+  args = parser.parse_args()
+  logging.basicConfig(level=args.log_level)
+  
+  main()

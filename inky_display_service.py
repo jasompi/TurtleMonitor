@@ -58,7 +58,7 @@ class InkyDisplayService:
       self._running = True
       self._display_thread.start()
     else:
-      logging.warn('Inky Display Service already started')
+      logging.warning('Inky Display Service already started')
     
   def shutdown(self):
     if self._running:
@@ -68,7 +68,7 @@ class InkyDisplayService:
         self._display_condition.notify()
       self._display_thread.join()
     else:
-      logging.warn('Inky Display Service not started')
+      logging.warning('Inky Display Service not started')
     
   def get_canvas(self, color=inky.WHITE):
     if self._free_canvases:
