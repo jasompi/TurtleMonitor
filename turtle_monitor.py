@@ -20,11 +20,8 @@ import time
 from inky_display_service import InkyDisplayService
 
 
-HIGH_LEVEL = 1.6
-HIGH_THRESHOLD = 1.5
-
-LOW_THRESHOLD = 0.5
-LOW_LEVEL = 0
+HIGH_LEVEL = 2.1
+LOW_LEVEL = 1.4
 
 
 class TurtleDisplay:
@@ -58,12 +55,12 @@ class TurtleDisplay:
     self._water_level = -1
 
   def display(self, air_temp, water_temp, uva, uvb, water_voltage):
-    water_level = min(17, round(water_voltage * 10))
-    logging.debug(f'water_level = {water_level}')
+    water_level = min(17, round((water_voltage - LOW_LEVEL) * 17/(HIGH_LEVEL - LOW_LEVEL)))
    
     air_temp_str = f': {round(air_temp)}℃ {round(fahrenheit(air_temp))}℉'
     water_temp_str = f': {round(water_temp)}℃ {round(fahrenheit(water_temp))}℉'
     uv_str = f': {round(uva)}(A) {round(uvb)}(B)'
+    logging.debug(f'uv: {uv_str}; air: {air_temp_str}; water: {water_temp_str}; water_level: {water_level}')
   
     if (air_temp_str != self._air_temp_str or water_temp_str != self._water_temp_str
         or uv_str != self._uv_str or water_level != self._water_level):
@@ -131,6 +128,7 @@ class TurtleDisplay:
         water_level -= 3
         y -= (self.water_icon_h - 4)
 
+      logging.debug(f'Update display')
       self._inky_service.display(canvas)
 
 
@@ -184,7 +182,7 @@ def main():
       logging.debug("voltage: {:>5.3f}".format(voltage))
 
       turtle_display.display(air_temp, water_temp, uva, uvb, voltage)
-      time.sleep(1)
+      time.sleep(5)
   except KeyboardInterrupt:
     pass
 
