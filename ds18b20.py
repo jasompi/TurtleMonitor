@@ -87,7 +87,7 @@ class DS18B20:
   def _read_temperatures(cls):
       for dev in cls.devices:
         dev._read_temperature()
-    
+
   @classmethod
   def service_loop(cls):
     logging.info('DS18B20 Service started')
@@ -107,7 +107,7 @@ class DS18B20:
     if not cls._async_mode:
       cls._read_temperatures()
       cls._async_mode = True
-      cls._service_thread = threading.Thread(target=cls.service_loop, name='DS18B20 Display Service')
+      cls._service_thread = threading.Thread(target=cls.service_loop, name='DS18B20 Service')
       cls._service_thread.start()
     else:
       logging.warning('DS18B20 Service already started')
@@ -119,7 +119,7 @@ class DS18B20:
       cls._service_thread.join()
     else:
       logging.warning('DS18B20 Service not started')
-    
+
 
 
 fahrenheit = DS18B20.fahrenheit
@@ -147,9 +147,9 @@ if __name__ == "__main__":
     '28-012115d1f634': 'Water',
     '28-012114259884': 'Air',
   }
-  
+
   devices = DS18B20.devices
-  
+
   if args.async_mode:
     DS18B20.start()
 

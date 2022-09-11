@@ -56,12 +56,12 @@ class TurtleDisplay:
 
   def display(self, air_temp, water_temp, uva, uvb, water_voltage):
     water_level = min(17, round((water_voltage - LOW_LEVEL) * 17/(HIGH_LEVEL - LOW_LEVEL)))
-   
+
     air_temp_str = f': {round(air_temp)}℃ {round(fahrenheit(air_temp))}℉'
     water_temp_str = f': {round(water_temp)}℃ {round(fahrenheit(water_temp))}℉'
     uv_str = f': {round(uva)}(A) {round(uvb)}(B)'
     logging.debug(f'uv: {uv_str}; air: {air_temp_str}; water: {water_temp_str}; water_level: {water_level}')
-  
+
     if (air_temp_str != self._air_temp_str or water_temp_str != self._water_temp_str
         or uv_str != self._uv_str or water_level != self._water_level):
       self._air_temp_str = air_temp_str
@@ -72,7 +72,7 @@ class TurtleDisplay:
       canvas = self._inky_service.get_canvas()
       img = canvas.image
       draw = canvas.draw
-    
+
       icon_w, icon_h = self.uv_icon.size
       w, h = self.font.getsize('UV')
       x = int(canvas.width * self.caption_width_ratio - w)
@@ -100,7 +100,7 @@ class TurtleDisplay:
       draw.text((x - icon_w - 2, y), self.water_wave_icon, inky.BLACK, font=self.symbola20_font)
       w, h = self.font.getsize(water_temp_str)
       wt_right, wt_bottom = x + w, y + h
-    
+
       y += h + 2
       x = 0
 
@@ -137,7 +137,7 @@ def main():
     '28-012115d1f634': 'Water',
     '28-012114259884': 'Air',
   }
-  
+
   temperatures = {
   }
 
@@ -156,10 +156,10 @@ def main():
   veml = veml6075.VEML6075(i2c, integration_time=100)
 
   # Create the ADC object using the I2C bus
-  ads = ADS.ADS1015(i2c)
+#   ads = ADS.ADS1015(i2c)
 
   # Create single-ended input on channel 0
-  chan = analog_in.AnalogIn(ads, ADS.P0)
+#   chan = analog_in.AnalogIn(ads, ADS.P0)
 
   try:
     while True:
@@ -178,7 +178,8 @@ def main():
       uva, uvb, uv_index = veml.uv_data
       logging.debug(f'uva={uva}, uvb={uvb}, uv_index={uv_index}')
 
-      voltage = chan.voltage
+#       voltage = chan.voltage
+      voltage = 3.0
       logging.debug("voltage: {:>5.3f}".format(voltage))
 
       turtle_display.display(air_temp, water_temp, uva, uvb, voltage)
@@ -209,5 +210,5 @@ if __name__ == "__main__":
   )
   args = parser.parse_args()
   logging.basicConfig(level=args.log_level)
-  
+
   main()
