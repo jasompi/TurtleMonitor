@@ -162,7 +162,7 @@ if __name__ == "__main__":
   try:
     while True:
       distance = distance_sensor.distance
-      print(f'Distance : {distance}')
+      print(f'Distance : {distance}mm')
       time.sleep(1)
   except KeyboardInterrupt:
     # User pressed CTRL-C

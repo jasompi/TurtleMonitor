@@ -144,8 +144,8 @@ if __name__ == "__main__":
   logging.basicConfig(level=args.log_level)
 
   device_names = {
-    '28-012115d1f634': 'Water',
-    '28-012114259884': 'Air',
+    '28-012115d1f634': 'Air',
+    '28-012114259884': 'Water',
   }
 
   devices = DS18B20.devices

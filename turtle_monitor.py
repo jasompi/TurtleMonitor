@@ -1,13 +1,12 @@
 #!/usr/bin/env python3
 
 import adafruit_veml6075 as veml6075
-import adafruit_ads1x15.ads1015 as ADS
-import adafruit_ads1x15.analog_in as analog_in
 import board
 import busio
 from ds18b20 import fahrenheit, DS18B20
 import fonts.ttf
 import glob
+from hc_sr04 import UltrasonicSensor
 import inky.phat
 import logging
 import math
@@ -20,8 +19,9 @@ import time
 from inky_display_service import InkyDisplayService
 
 
-HIGH_LEVEL = 2.1
-LOW_LEVEL = 1.4
+WATER_HIGH_LEVEL = 240
+WATER_LOW_LEVEL = 200
+WATER_MAX_DISTANCE = 300
 
 
 class TurtleDisplay:
@@ -54,8 +54,9 @@ class TurtleDisplay:
     self._uv_str = ''
     self._water_level = -1
 
-  def display(self, air_temp, water_temp, uva, uvb, water_voltage):
-    water_level = min(17, round((water_voltage - LOW_LEVEL) * 17/(HIGH_LEVEL - LOW_LEVEL)))
+  def display(self, air_temp, water_temp, uva, uvb, water_distance):
+    water_depth = WATER_MAX_DISTANCE - water_distance
+    water_level = max(min(17, round((water_depth - WATER_LOW_LEVEL) * 17/(WATER_HIGH_LEVEL - WATER_LOW_LEVEL))), 0)
 
     air_temp_str = f': {round(air_temp)}℃ {round(fahrenheit(air_temp))}℉'
     water_temp_str = f': {round(water_temp)}℃ {round(fahrenheit(water_temp))}℉'
@@ -134,8 +135,8 @@ class TurtleDisplay:
 
 def main():
   device_names = {
-    '28-012115d1f634': 'Water',
-    '28-012114259884': 'Air',
+    '28-012115d1f634': 'Air',
+    '28-012114259884': 'Water',
   }
 
   temperatures = {
@@ -155,12 +156,9 @@ def main():
   # Create VEML6075 object using the I2C bus
   veml = veml6075.VEML6075(i2c, integration_time=100)
 
-  # Create the ADC object using the I2C bus
-#   ads = ADS.ADS1015(i2c)
-
-  # Create single-ended input on channel 0
-#   chan = analog_in.AnalogIn(ads, ADS.P0)
-
+  distance_sensor = UltrasonicSensor()
+  distance_sensor.start()
+    
   try:
     while True:
       for dev in devices:
@@ -179,14 +177,15 @@ def main():
       logging.debug(f'uva={uva}, uvb={uvb}, uv_index={uv_index}')
 
 #       voltage = chan.voltage
-      voltage = 3.0
-      logging.debug("voltage: {:>5.3f}".format(voltage))
+      distance = distance_sensor.distance
+      logging.debug("distance: {:>5.3f}".format(distance))
 
-      turtle_display.display(air_temp, water_temp, uva, uvb, voltage)
+      turtle_display.display(air_temp, water_temp, uva, uvb, distance)
       time.sleep(5)
   except KeyboardInterrupt:
     pass
 
+  distance_sensor.shutdown()
   inky_service.shutdown()
   DS18B20.shutdown()
   logging.info('Turtle Monitor stopped')
