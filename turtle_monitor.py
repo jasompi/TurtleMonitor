@@ -158,6 +158,7 @@ def main():
 
   distance_sensor = UltrasonicSensor()
   distance_sensor.start()
+  time.sleep(1)
     
   try:
     while True:
@@ -167,18 +168,18 @@ def main():
         temp_c = dev.temperature
         temp_f = dev.fahrenheit(temp_c)
 
-        logging.debug(f'{device_name:>7}({device_id}): {temp_c}℃ {temp_f}℉')
+        logging.info(f'{device_name:>7}({device_id}): {temp_c}℃ {temp_f}℉')
         temperatures[device_name] = temp_c
 
       air_temp = temperatures['Air']
       water_temp = temperatures['Water']
 
       uva, uvb, uv_index = veml.uv_data
-      logging.debug(f'uva={uva}, uvb={uvb}, uv_index={uv_index}')
+      logging.info(f'uva={uva}, uvb={uvb}, uv_index={uv_index}')
 
 #       voltage = chan.voltage
-      distance = distance_sensor.distance
-      logging.debug("distance: {:>5.3f}".format(distance))
+      distance = distance_sensor.moving_average_distance
+      logging.info("distance: {:>5.0f}mm".format(distance))
 
       turtle_display.display(air_temp, water_temp, uva, uvb, distance)
       time.sleep(5)

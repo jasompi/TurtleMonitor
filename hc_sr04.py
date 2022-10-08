@@ -2,7 +2,7 @@
 
 import RPi.GPIO as GPIO
 import logging
-import logging
+import moving_average
 import threading
 import time
 
@@ -20,12 +20,13 @@ SOUND_SPEED = 343000   # 343000 mm/s
 MEASURE_TIMEOUT = 1.0 # 1s
 
 class UltrasonicSensor:
-  def __init__(self, trigger_pin=GPIO_TRIGGER, echo_pin=GPIO_ECHO, measure_count=3, measure_interval=0.01, measure_period=1):
+  def __init__(self, trigger_pin=GPIO_TRIGGER, echo_pin=GPIO_ECHO, measure_count=3, measure_interval=0.01, measure_period=1, window_size=10):
     self._trigger_pin = trigger_pin
     self._echo_pin = echo_pin
     self._measure_count = measure_count
     self._measure_interval = measure_interval
     self._measure_period = measure_period
+    self._moving_average = moving_average.MovingAverage(window_size)
     self._async_mode = False
     self._service_thread = None
     self._event = threading.Event()
@@ -104,6 +105,12 @@ class UltrasonicSensor:
     if not self._async_mode:
       return self._measure_average()
     return self._distance
+    
+  @property
+  def moving_average_distance(self):
+    if not self._async_mode:
+      return self._measure_average()
+    return self._moving_average.average
 
 
   def _measure_loop(self):
@@ -111,6 +118,7 @@ class UltrasonicSensor:
     while self._async_mode:
       begin = time.time()
       self._distance = self._measure_average()
+      self._moving_average.add(self._distance)
       end = time.time()
       elapsed = end - begin
       logging.debug(f'measure average takes {elapsed}s')
@@ -158,11 +166,16 @@ if __name__ == "__main__":
   distance_sensor = UltrasonicSensor()
   if args.async_mode:
     distance_sensor.start()
+    time.sleep(1)
 
   try:
     while True:
       distance = distance_sensor.distance
-      print(f'Distance : {distance}mm')
+      if args.async_mode:
+        average_distance = distance_sensor.moving_average_distance
+        print(f'Distance: {distance}mm, Moving average: {average_distance}mm')
+      else:
+        print(f'Distance: {distance}mm')
       time.sleep(1)
   except KeyboardInterrupt:
     # User pressed CTRL-C
