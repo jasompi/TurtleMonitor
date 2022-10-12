@@ -1,6 +1,7 @@
 [Unit]
 # Human readable name of the unit
 Description=Turtle Monitor
+After=mariadb.service
 
 [Service]
 # Command to execute when the service is started

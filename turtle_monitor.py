@@ -3,6 +3,7 @@
 import adafruit_veml6075 as veml6075
 import board
 import busio
+import data_store
 from ds18b20 import fahrenheit, DS18B20
 import fonts.ttf
 import glob
@@ -39,7 +40,7 @@ class TurtleDisplay:
   air_icon = '🌡'
   water_wave_icon = '🌊'
   fill_water_icon = '🚰'
-  turtle_icon = '🐢'
+  turtle_icon = '🐢  🐌 🐌'
   water_tilde_symbols = ' ∼≈≋'
   water_tilde_offsets = [0, 6, 3, 0]
   caption_width_ratio = 0.35
@@ -152,14 +153,16 @@ def main():
   logging.info('Turtle Monitor started')
 
   i2c = busio.I2C(board.SCL, board.SDA)
+  
+  ds = data_store.DataStore()
 
   # Create VEML6075 object using the I2C bus
   veml = veml6075.VEML6075(i2c, integration_time=100)
 
-  distance_sensor = UltrasonicSensor()
+  distance_sensor = UltrasonicSensor(measure_period=5)
   distance_sensor.start()
   time.sleep(1)
-    
+  
   try:
     while True:
       for dev in devices:
@@ -177,15 +180,16 @@ def main():
       uva, uvb, uv_index = veml.uv_data
       logging.info(f'uva={uva}, uvb={uvb}, uv_index={uv_index}')
 
-#       voltage = chan.voltage
-      distance = distance_sensor.moving_average_distance
-      logging.info("distance: {:>5.0f}mm".format(distance))
-
-      turtle_display.display(air_temp, water_temp, uva, uvb, distance)
+      distance = distance_sensor.distance
+      average_distance = distance_sensor.moving_average_distance
+      logging.info("distance: {:>5.0f}mm; moving_average: {:>5.0f}mm".format(distance, average_distance))
+      ds.add_data(air_temp, water_temp, uva, uvb, distance)
+      turtle_display.display(air_temp, water_temp, uva, uvb, average_distance)
       time.sleep(5)
   except KeyboardInterrupt:
     pass
 
+  ds.close()
   distance_sensor.shutdown()
   inky_service.shutdown()
   DS18B20.shutdown()
