@@ -15,6 +15,7 @@ import os
 import PIL.Image
 import PIL.ImageDraw
 import PIL.ImageFont
+import random
 import threading
 import time
 from inky_display_service import InkyDisplayService
@@ -24,6 +25,7 @@ WATER_HIGH_LEVEL = 240
 WATER_LOW_LEVEL = 200
 WATER_MAX_DISTANCE = 300
 
+random.seed()
 
 class TurtleDisplay:
   def load_image(name):
@@ -34,19 +36,22 @@ class TurtleDisplay:
     # Load the font
   font = PIL.ImageFont.truetype(fonts.ttf.RobotoMedium, 20)
   symbola20_font = PIL.ImageFont.truetype('/usr/share/fonts/truetype/ancient-scripts/Symbola_hint.ttf', 20)
-  symbola40_font = PIL.ImageFont.truetype('/usr/share/fonts/truetype/ancient-scripts/Symbola_hint.ttf', 30)
+  symbola30_font = PIL.ImageFont.truetype('/usr/share/fonts/truetype/ancient-scripts/Symbola_hint.ttf', 20)
+  symbola40_font = PIL.ImageFont.truetype('/usr/share/fonts/truetype/ancient-scripts/Symbola_hint.ttf', 35)
   # Load images and icons
   uv_icon = load_image('UV')
   air_icon = '🌡'
   water_wave_icon = '🌊'
   fill_water_icon = '🚰'
-  turtle_icon = '🐢  🐌 🐌'
+  turtle_icon = '🐢'
+  snail_icon = '🐌🐌'
   water_tilde_symbols = ' ∼≈≋'
   water_tilde_offsets = [0, 6, 3, 0]
   caption_width_ratio = 0.35
   water_icon_w, water_icon_h = symbola20_font.getsize(water_tilde_symbols[3])
   fill_water_w, fill_water_h = symbola20_font.getsize(fill_water_icon)
   turtle_icon_w, turtle_icon_h = symbola40_font.getsize(turtle_icon)
+  snail_icon_w, snail_icon_h = symbola30_font.getsize(snail_icon)
 
   def __init__(self, inky_service):
     self._inky_service = inky_service
@@ -108,13 +113,14 @@ class TurtleDisplay:
 
       left = x
       draw_turtle = True
+      draw_snail = True
       while water_level >= 0:
         water_tilde_symbol = self.water_tilde_symbols[min(3, water_level)]
         water_tilde_offset = self.water_tilde_offsets[min(3, water_level)]
-        water_str = water_tilde_symbol * 5
+        water_str = water_tilde_symbol * 4
         if draw_turtle:
           draw.text((x, y + water_tilde_offset), water_str, inky.BLACK, font=self.symbola20_font)
-          turtle_x = canvas.width / 2 - self.turtle_icon_w / 2
+          turtle_x = canvas.width / 2 - self.turtle_icon_w
           turtle_y = y + self.water_icon_h - self.turtle_icon_h
           draw.text((turtle_x, turtle_y), self.turtle_icon, inky.BLACK, font=self.symbola40_font)
           left = max(left, turtle_x + self.turtle_icon_w)
@@ -126,6 +132,13 @@ class TurtleDisplay:
           left = max(left, uv_right)
         num = math.ceil((left - x)/self.water_icon_w)
         remain = 13 - num
+        if draw_snail:
+          reduce = math.ceil(self.snail_icon_w/self.water_icon_w)
+          remain -= reduce
+          space = reduce * self.water_icon_w
+          offset = random.randrange(self.snail_icon_w, space)
+          draw.text((canvas.width - offset, canvas.height - self.snail_icon_h), self.snail_icon, inky.BLACK, font=self.symbola30_font)
+          draw_snail = False
         draw.text((x + self.water_icon_w * num, y + water_tilde_offset), water_tilde_symbol * remain, inky.BLACK, font=self.symbola20_font)
         water_level -= 3
         y -= (self.water_icon_h - 4)
