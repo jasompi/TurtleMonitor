@@ -10,6 +10,8 @@ import threading
 class InkyDisplayCanvas:
   def __init__(self, size, color=inky.WHITE):
     self._image = PIL.Image.new("P", size, color=color)
+    self._image.palette.getcolor((255,255,255))
+    self._image.palette.getcolor((0,0,0))
     self._draw = None
     
   @property
@@ -36,6 +38,9 @@ class InkyDisplayCanvas:
 
   def clear(self, color=inky.WHITE):
     self._image.paste(color, (0, 0, self._image.width, self._image.height))
+
+  def save(self, path):
+    self._image.save(path)
 
 
 class InkyDisplayService:
@@ -79,6 +84,7 @@ class InkyDisplayService:
     return canvas
   
   def display(self, canvas):
+    canvas.save('/dev/shm/InkyDisplay.png')
     with self._display_condition:
       if self._display_canvas:
         self._free_canvases.append(self._display_canvas)
