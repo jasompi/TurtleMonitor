@@ -1,1 +1,3 @@
 # TurtleMonitor
+
+![InkyDisplay](InkyDisplay.png)
