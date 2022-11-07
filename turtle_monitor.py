@@ -117,11 +117,12 @@ class TurtleDisplay:
       while water_level >= 0:
         water_tilde_symbol = self.water_tilde_symbols[min(3, water_level)]
         water_tilde_offset = self.water_tilde_offsets[min(3, water_level)]
-        water_str = water_tilde_symbol * 4
         if draw_turtle:
+          turtle_offset = random.randrange(0, 3 * self.turtle_icon_w)
+          turtle_x = canvas.width / 2 - turtle_offset
+          turtle_y = canvas.height - self.turtle_icon_h
+          water_str = water_tilde_symbol * math.floor(turtle_x / self.water_icon_w)
           draw.text((x, y + water_tilde_offset), water_str, inky.BLACK, font=self.symbola20_font)
-          turtle_x = canvas.width / 2 - self.turtle_icon_w
-          turtle_y = y + self.water_icon_h - self.turtle_icon_h
           draw.text((turtle_x, turtle_y), self.turtle_icon, inky.BLACK, font=self.symbola40_font)
           left = max(left, turtle_x + self.turtle_icon_w)
           draw_turtle = False
